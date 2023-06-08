@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Wally: Install project packages",
+			"type": "shell",
+			"command": "wally",
+			"args": [ "install" ],
+			"group": { "kind": "build" },
+		},
+
+		{
+			"label": "Love2D: Execute project",
+			"type": "shell",
+			"command": "lovec",
+			"args": [ "." ],
+			"group": { "kind": "build" },
+			"options": {
+				"cwd": "${workspaceFolder}/Source",
+			}
+		}
+	]
+}
