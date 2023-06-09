@@ -1,21 +1,21 @@
-local Signal = require("Vendor.Signal")
+local signal = require("vendor.signal")
 
 local MAX_RECORD_ALLOCATION = 15
 
-local State = { }
+local state = { }
 
-State.Type = "State"
+state.type = "state"
 
-State.Interface = { }
-State.Prototype = { }
+state.interface = { }
+state.prototype = { }
 
-function State.Prototype:SetRecordingState(state)
+function state.prototype:setRecordingState(state)
 	self._recording = state
 
 	return self
 end
 
-function State.Prototype:GetRecord(count)
+function state.prototype:getRecord(count)
 	if not count then
 		return self._record
 	end
@@ -29,8 +29,8 @@ function State.Prototype:GetRecord(count)
 	return record
 end
 
-function State.Prototype:Set(value)
-	local oldValue = self.Value
+function state.prototype:set(value)
+	local oldValue = self.value
 
 	if self._recording then
 		table.insert(self._record, 1, value)
@@ -40,58 +40,59 @@ function State.Prototype:Set(value)
 		end
 	end
 
-	self.Value = value
-	self.Changed:Invoke(oldValue, value)
+	self.value = value
+	self.onChanged:invoke(oldValue, value)
 end
 
-function State.Prototype:Increment(value)
-	self:Set(self.Value + value)
+function state.prototype:increment(value)
+	self:set(self.value + value)
 
 	return self
 end
 
-function State.Prototype:Decrement(value)
-	self:Set(self.Value - value)
+function state.prototype:decrement(value)
+	self:set(self.value - value)
 
 	return self
 end
 
-function State.Prototype:Concat(value)
-	self:Set(self.Value .. value)
+function state.prototype:concat(value)
+	self:set(self.value .. value)
 
 	return self
 end
 
-function State.Prototype:Update(transform)
-	self:Set(transform(self.Value))
+function state.prototype:update(transform)
+	self:set(transform(self.value))
 
 	return self
 end
 
-function State.Prototype:Get()
-	return self.Value
+function state.prototype:get()
+	return self.value
 end
 
-function State.Prototype:Observe(callbackFn)
-	return self.Changed:Connect(callbackFn)
+function state.prototype:observe(callbackFn)
+	return self.onChanged:listen(callbackFn)
 end
 
-function State.Prototype:ToString()
-	return string.format("%s<%s>", State.Type, tostring(self.Value))
+function state.prototype:toString()
+	return string.format("%s<%s>", state.type, tostring(self.value))
 end
 
-function State.Interface.new(value)
-	local self = setmetatable({ Value = value, _record = { value } }, {
-		__type = State.Type,
-		__index = State.Prototype,
+function state.interface.new(value)
+	local self = setmetatable({ value = value, _record = { value } }, {
+		__type = state.type,
+		__index = state.prototype,
+
 		__tostring = function(object)
-			return object:ToString()
+			return object:toString()
 		end
 	})
 
-	self.Changed = Signal.new()
+	self.onChanged = signal.new()
 
 	return self
 end
 
-return State.Interface
+return state.interface

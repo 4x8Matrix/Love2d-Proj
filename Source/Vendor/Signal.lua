@@ -1,79 +1,73 @@
-local Connection = require("Vendor.Connection")
+local Connection = require("vendor.connection")
 
-local Signal = { }
+local signal = { }
 
-Signal.Type = "Signal"
+signal.type = "signal"
 
-Signal.Interface = { }
-Signal.Prototype = { }
+signal.interface = { }
+signal.prototype = { }
 
-function Signal.Prototype:Once(callbackFn)
-    local connection
+function signal.prototype:once(callbackFn)
+	local connection
 
-    connection = self:Connect(function(...)
-        connection:Disconnect()
+	connection = self:listen(function(...)
+		connection:Disconnect()
 
-        callbackFn(...)
-    end)
+		callbackFn(...)
+	end)
 end
 
-function Signal.Prototype:Connect(callbackFn)
-    return Connection.new(callbackFn, function(connectionObject)
-        table.remove(self._connections, connectionObject)
-    end, function(connectionObject)
-        table.insert(self._connections, connectionObject)
-    end)
+function signal.prototype:listen(callbackFn)
+	return Connection.new(callbackFn, function(connectionObject)
+		table.removeValue(self._connections, connectionObject)
+	end, function(connectionObject)
+		table.insert(self._connections, connectionObject)
+	end)
 end
 
-function Signal.Prototype:Wait()
-    local currentCoroutine = coroutine.running()
+function signal.prototype:yield()
+	local currentCoroutine = coroutine.running()
 
-    self:Once(function(...)
-        coroutine.resume(currentCoroutine, ...)
-    end)
+	self:once(function(...)
+		coroutine.resume(currentCoroutine, ...)
+	end)
 
-    return coroutine.yield()
+	return coroutine.yield()
 end
 
-function Signal.Prototype:GetConnections()
-    return self._connections
+function signal.prototype:getConnections()
+	return self._connections
 end
 
-function Signal.Prototype:DisconnectAll()
-    for _, connection in next, self._connections do
-        connection:Disconnect()
-    end
+function signal.prototype:disconnectAll()
+	for _, connection in next, self._connections do
+		connection:Disconnect()
+	end
 
-    table.clear(self._connections)
+	table.clear(self._connections)
 end
 
-function Signal.Prototype:Destroy()
-    self:DisconnectAll()
-
-    setmetatable(self, { __mode = "kv" })
+function signal.prototype:invoke(...)
+	for _, connection in next, self._connections do
+		connection:invoke(...)
+	end
 end
 
-function Signal.Prototype:Invoke(...)
-    for _, connection in next, self._connections do
-        coroutine.spawn(connection.Invoke, connection, ...)
-    end
+function signal.prototype:toString()
+	return string.format("%s<#%d connections>", signal.type, #self._connections)
 end
 
-function Signal.Prototype:ToString()
-    return string.format("%s<#%d connections>", Signal.Type, #self._connections)
+function signal.interface.new()
+	return setmetatable({
+		_connections = { }
+	}, {
+		__index = signal.prototype,
+		__type = signal.type,
+
+		__tostring = function(self)
+			return self:toString()
+		end
+	})
 end
 
-function Signal.Interface.new()
-    return setmetatable({
-        _connections = { }
-    }, {
-        __index = Signal.Prototype,
-        __type = Signal.Type,
-
-        __tostring = function(self)
-            return self:ToString()
-        end
-    })
-end
-
-return Signal.Interface
+return signal.interface

@@ -1,48 +1,36 @@
-local Singleton = { }
+local singleton = { }
 
-Singleton.Type = "Singleton"
+singleton.type = "singleton"
 
-Singleton.Interface = { }
-Singleton.Instances = { }
-Singleton.Prototype = { }
+singleton.interface = { }
+singleton.instances = { }
+singleton.prototype = { }
 
-function Singleton.Prototype:InvokeLifecycle(methodName, ...)
-    if not self[methodName] then
-        return
-    end
-
-    return self[methodName](self, ...)
+function singleton.prototype:toString()
+	return string.format("%s<\"%s\">", singleton.type, self.name)
 end
 
-function Singleton.Prototype:ToString()
-    return string.format("%s<\"%s\">", Singleton.Type, self.Name)
+function singleton.interface.getInstances()
+	return table.clone(singleton.instances)
 end
 
-function Singleton.Interface.new(source)
-    local self = setmetatable(source, {
-        __index = Singleton.Prototype,
-        __type = Singleton.Type,
-
-        __tostring = function(self)
-            return self:ToString()
-        end
-    })
-
-    if source.Internal then
-        source.Internal.Service = source
-    end
-
-    Singleton.Instances[source.Name] = self
-
-    return Singleton.Instances[source.Name]
+function singleton.interface.getInstance(name)
+	return singleton.instances[name]
 end
 
-function Singleton.Interface.fetchAll()
-    return Singleton.Instances
+function singleton.interface.new(source)
+	local self = setmetatable(source, {
+		__index = singleton.prototype,
+		__type = singleton.type,
+
+		__tostring = function(self)
+			return self:toString()
+		end
+	})
+
+	singleton.instances[source.name] = self
+
+	return singleton.instances[source.name]
 end
 
-function Singleton.Interface.fetch(serviceName)
-    return Singleton.Instances[serviceName]
-end
-
-return Singleton.Interface
+return singleton.interface

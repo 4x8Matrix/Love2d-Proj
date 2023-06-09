@@ -1,62 +1,62 @@
-local Connection = { }
+local connection = { }
 
-Connection.Type = "Connection"
+connection.type = "connection"
 
-Connection.Interface = { }
-Connection.Prototype = { }
+connection.interface = { }
+connection.prototype = { }
 
-function Connection.Prototype:Disconnect()
-    self.Connected = false
+function connection.prototype:disconnect()
+	self.Connected = false
 
-    self._disconnectFn(self)
+	self._disconnectFn(self)
 end
 
-function Connection.Prototype:Reconnect()
-    self.Connected = true
+function connection.prototype:reconnect()
+	self.Connected = true
 
-    self._reconnectFn(self)
+	self._reconnectFn(self)
 end
 
-function Connection.Prototype:Destroy()
-    self.Connected = false
+function connection.prototype:invoke(...)
+	if not self.Connected then
+		return
+	end
 
-    self._disconnectFn(self)
-
-    setmetatable(self, { __mode = "kv" })
+	return coroutine.resume(self._routine, ...)
 end
 
-function Connection.Prototype:Invoke(...)
-    if not self.Connected then
-        return
-    end
-
-    return self._callbackFn(...)
+function connection.prototype:toString()
+	return string.format("%s<%s>", connection.type, tostring(self._callbackFn))
 end
 
-function Connection.Prototype:ToString()
-    return string.format("%s<%s>", Connection.Type, tostring(self._callbackFn))
+function connection.interface.new(callbackFn, disconnectFn, reconnectFn)
+	local self = setmetatable({
+		Connected = true,
+
+		_callbackFn = callbackFn,
+
+		_reconnectFn = reconnectFn,
+		_disconnectFn = disconnectFn
+	}, {
+		__index = connection.prototype,
+		__type = connection.type,
+
+		__tostring = function(self)
+			return self:toString()
+		end
+	})
+
+	self:reconnect()
+
+	self._routine = coroutine.create(function(...)
+		local args = { ... }
+
+		while true do
+			args = { coroutine.yield(self._callbackFn(table.unpack(args))) }
+		end
+	end)
+
+	return self
 end
 
-function Connection.Interface.new(callbackFn, disconnectFn, reconnectFn)
-    local self = setmetatable({
-        Connected = true,
-
-        _callbackFn = callbackFn,
-
-        _reconnectFn = reconnectFn,
-        _disconnectFn = disconnectFn
-    }, {
-        __index = Connection.Prototype,
-        __type = Connection.Type,
-
-        __tostring = function(self)
-            return self:ToString()
-        end
-    })
-
-    self:Reconnect()
-
-    return self
-end
-
-return Connection.Interface
+return connection.interface
